@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-icon">🩺</div>
+            <h1 class="auth-title">Create Account</h1>
+            <p class="auth-subtitle">Join the AI-powered Bone Age Classification Platform</p>
+        </div>
+
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li class="alert alert-{{ message.tags }}">
+                {% if message.tags == 'error' %}❌{% elif message.tags == 'success' %}✅{% endif %}
+                {{ message }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        <form method="POST" action="{% url 'register' %}" id="registerForm">
+            {% csrf_token %}
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="id_first_name">First Name</label>
+                    <input type="text" id="id_first_name" name="first_name" class="form-input"
+                           placeholder="First name" required value="{{ form.first_name.value|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_last_name">Last Name</label>
+                    <input type="text" id="id_last_name" name="last_name" class="form-input"
+                           placeholder="Last name" required value="{{ form.last_name.value|default:'' }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="id_phone_number">Phone Number</label>
+                    <input type="text" id="id_phone_number" name="phone_number" class="form-input"
+                           placeholder="Enter phone number" required value="{{ form.phone_number.value|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="id_location">Location</label>
+                    <input type="text" id="id_location" name="location" class="form-input"
+                           placeholder="City or location" required value="{{ form.location.value|default:'' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_username">User Name</label>
+                <input type="text" id="id_username" name="username" class="form-input"
+                       placeholder="Create a unique username" required value="{{ form.username.value|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_email">Email Address</label>
+                <input type="email" id="id_email" name="email" class="form-input"
+                       placeholder="Enter your email" required value="{{ form.email.value|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="id_password">Password</label>
+                <input type="password" id="id_password" name="password" class="form-input"
+                       placeholder="Create password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                <span class="btn-text">Create Account →</span>
+                <div class="spinner"></div>
+            </button>
+        </form>
+
+        <div class="divider">or</div>
+
+        <div class="auth-footer">
+            Already have an account? <a href="{% url 'login' %}">Sign in here</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('registerForm').addEventListener('submit', function() {
+        const btn = document.getElementById('registerBtn');
+        btn.classList.add('loading');
+    });
+</script>
+{% endblock %}

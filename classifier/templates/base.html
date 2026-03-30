@@ -1,0 +1,62 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Bone Age Classification Using CNN Algorithm - AI-powered bone age assessment from hand X-ray images">
+    <title>{% block title %}Bone Age Classification{% endblock %} | CNN Deep Learning</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦴</text></svg>">
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="bg-pattern"></div>
+    <div class="floating-orb"></div>
+    <div class="floating-orb"></div>
+    <div class="floating-orb"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <a href="{% url 'home' %}" class="nav-brand">
+            <div class="nav-brand-icon">🦴</div>
+            <span class="nav-brand-text">Bone Age Classification</span>
+        </a>
+        <ul class="nav-links">
+            {% if user.is_authenticated %}
+                <li><a href="{% url 'prediction' %}" class="nav-link {% if request.resolver_match.url_name == 'prediction' %}active{% endif %}">🔬 Prediction</a></li>
+                {% if user.userprofile.role == 'admin' %}
+                    <li><a href="{% url 'admin_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">👑 Admin Panel</a></li>
+                {% else %}
+                    <li><a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Dashboard</a></li>
+                {% endif %}
+                <li><a href="{% url 'history' %}" class="nav-link {% if request.resolver_match.url_name == 'history' %}active{% endif %}">📋 History</a></li>
+                <li><a href="{% url 'logout' %}" class="nav-link nav-btn-danger nav-btn">Logout</a></li>
+            {% else %}
+                <li><a href="{% url 'login' %}" class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}">🔐 Login</a></li>
+                <li><a href="{% url 'register' %}" class="nav-link nav-btn nav-btn-primary">Register Free</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="page-container">
+        {% if messages %}
+        <div style="max-width: 600px; margin: 0 auto; padding: 0 24px;">
+            <ul class="messages">
+                {% for message in messages %}
+                <li class="alert alert-{{ message.tags }}">
+                    {% if message.tags == 'success' %}✅{% elif message.tags == 'error' %}❌{% elif message.tags == 'info' %}ℹ️{% elif message.tags == 'warning' %}⚠️{% endif %}
+                    {{ message }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

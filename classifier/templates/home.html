@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home | Bone Age Classification{% endblock %}
+
+{% block content %}
+<div class="home-container" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 80vh; text-align: center; padding-top: 5vh;">
+    
+    <!-- Main Title as requested by user -->
+    <div style="margin-bottom: 60px;">
+        <h1 style="font-size: 48px; font-weight: 800; background: linear-gradient(135deg, #fff, var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 16px; font-family: 'Outfit', sans-serif;">
+            Bone Age Classification Using CNN Algorithm
+        </h1>
+        <p style="font-size: 18px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6;">
+            An advanced deep learning system to assess pediatric bone age, detect abnormalities, and identify affected areas using automated X-ray analysis.
+        </p>
+    </div>
+
+
+
+    <!-- Navigation Options -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; width: 100%; max-width: 1000px; margin: 0 auto; padding-bottom: 50px;">
+        
+        <!-- Login Card -->
+        <a href="{% url 'login' %}" class="home-nav-card" style="display: block; text-decoration: none; padding: 40px 30px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 20px; transition: all 0.3s ease; backdrop-filter: blur(10px); color: white;">
+            <div style="font-size: 48px; margin-bottom: 20px;">🔐</div>
+            <h2 style="font-size: 24px; margin-bottom: 12px; color: #38bdf8;">User Login</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">Sign in with your email and password to start predictions.</p>
+        </a>
+
+        <!-- Register Card -->
+        <a href="{% url 'register' %}" class="home-nav-card" style="display: block; text-decoration: none; padding: 40px 30px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 20px; transition: all 0.3s ease; backdrop-filter: blur(10px); color: white;">
+            <div style="font-size: 48px; margin-bottom: 20px;">📝</div>
+            <h2 style="font-size: 24px; margin-bottom: 12px; color: #10b981;">Register Account</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">Create your profile: Name, Phone, Location and credentials.</p>
+        </a>
+
+        <!-- Admin Card -->
+        <a href="{% url 'admin_dashboard' %}" class="home-nav-card" style="display: block; text-decoration: none; padding: 40px 30px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 20px; transition: all 0.3s ease; backdrop-filter: blur(10px); color: white;">
+            <div style="font-size: 48px; margin-bottom: 20px;">👑</div>
+            <h2 style="font-size: 24px; margin-bottom: 12px; color: #f59e0b;">Admin Access</h2>
+            <p style="color: var(--text-muted); font-size: 14px;">System administrators and doctors can manage and audit records.</p>
+        </a>
+
+    </div>
+</div>
+
+<style>
+    .home-nav-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+        border-color: rgba(99, 102, 241, 0.4) !important;
+        background: rgba(45, 45, 60, 0.8) !important;
+    }
+</style>
+{% endblock %}

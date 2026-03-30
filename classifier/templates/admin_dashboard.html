@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header" style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 30px; border-radius: 20px; color: white; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);">
+        <h1 class="dashboard-title" style="color: white; margin-bottom: 5px;">👑 Admin Control Center</h1>
+        <p class="dashboard-subtitle" style="color: rgba(255, 255, 255, 0.9);">System-wide overview for {{ user.first_name|default:user.username }}.</p>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card" style="border-top: 4px solid var(--primary);">
+            <div class="stat-icon">🔬</div>
+            <div class="stat-value">{{ total_predictions }}</div>
+            <div class="stat-label">System Total Predictions</div>
+        </div>
+        <div class="stat-card" style="border-top: 4px solid var(--accent);">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value">{{ total_users }}</div>
+            <div class="stat-label">Total System Users</div>
+        </div>
+        <div class="stat-card" style="border-top: 4px solid #10b981;">
+            <div class="stat-icon">📈</div>
+            <div class="stat-value">{{ my_predictions }}</div>
+            <div class="stat-label">Your Predictions</div>
+        </div>
+        <div class="stat-card" style="border-top: 4px solid #f59e0b;">
+            <div class="stat-icon">🚻</div>
+            <div class="stat-value">{{ male_count }}/{{ female_count }}</div>
+            <div class="stat-label">M/F Case Ratio</div>
+        </div>
+    </div>
+
+    <!-- Case Analytics -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px;">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">👨‍⚕️ Admin Tools</h2>
+            </div>
+            <div class="card-body">
+                <p style="color: var(--text-muted); margin-bottom: 15px;">Manage system users and global records from this panel.</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <a href="{% url 'prediction' %}" class="btn btn-primary btn-sm">🚀 New Prediction</a>
+                    <button class="btn btn-outline btn-sm" disabled>Manage Users (Comming Soon)</button>
+                    <button class="btn btn-outline btn-sm" disabled>Export Data</button>
+                </div>
+            </div>
+        </div>
+    <!-- Registered Users List -->
+    <div class="card" style="margin-bottom: 32px;">
+        <div class="card-header">
+            <h2 class="card-title">👥 Registered Users</h2>
+            <span class="tag" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">Total: {{ total_users }}</span>
+        </div>
+        <div class="card-body">
+            {% if registered_users %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Full Name</th>
+                            <th>Username</th>
+                            <th>Phone</th>
+                            <th>Location</th>
+                            <th>Role</th>
+                            <th>Joined Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for profile in registered_users %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td style="font-weight: 600;">{{ profile.user.first_name }} {{ profile.user.last_name }}</td>
+                            <td>{{ profile.user.username }}</td>
+                            <td>{{ profile.phone_number }}</td>
+                            <td>{{ profile.location }}</td>
+                            <td>
+                                <span class="tag" style="background: {% if profile.role == 'admin' %}rgba(245, 158, 11, 0.1){% else %}rgba(16, 185, 129, 0.1){% endif %}; color: {% if profile.role == 'admin' %}#f59e0b{% else %}#10b981{% endif %};">
+                                    {{ profile.role|title }}
+                                </span>
+                            </td>
+                            <td style="font-size: 12px; color: var(--text-muted);">{{ profile.user.date_joined|date:"d M Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p>No users registered yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Global Records -->
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">🌍 Global Recent Predictions</h2>
+            <div style="display: flex; gap: 10px;">
+                <span class="tag" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">Live Feed</span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if recent_records %}
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Patient</th>
+                            <th>Gender</th>
+                            <th>Age Prediction</th>
+                            <th>Status</th>
+                            <th>Attending User</th>
+                            <th>Timestamp</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in recent_records %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td style="font-weight: 600; color: var(--text-primary);">{{ record.patient_name|default:"Unknown" }}</td>
+                            <td>
+                                <span class="tag {% if record.patient_gender == 'male' %}tag-male{% else %}tag-female{% endif %}">
+                                    {% if record.patient_gender == 'male' %}♂ Male{% else %}♀ Female{% endif %}
+                                </span>
+                            </td>
+                            <td style="font-weight: 700; color: var(--accent-light);">
+                                {{ record.predicted_age_years|default:"--" }} Y
+                            </td>
+                            <td>
+                                <span class="tag" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">Complete</span>
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--primary); color: white; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800;">
+                                        {{ record.user.username|slice:":1"|upper }}
+                                    </div>
+                                    <span style="font-size: 13px;">{{ record.user.username }}</span>
+                                </div>
+                            </td>
+                            <td style="font-size: 12px; color: var(--text-muted);">{{ record.uploaded_at|date:"d M, h:i A" }}</td>
+                            <td>
+                                <a href="{% url 'result' record.id %}" class="btn btn-outline btn-sm">Audit</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📂</div>
+                <h3 class="empty-title">No System Records</h3>
+                <p class="empty-text">No records have been processed by any user yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

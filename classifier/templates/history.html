@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Prediction History{% endblock %}
+
+{% block content %}
+<div class="history-container">
+    <div class="history-header">
+        <h1 class="history-title">📋 Prediction History</h1>
+        <a href="{% url 'prediction' %}" class="btn btn-primary">+ New Prediction</a>
+    </div>
+
+    {% if records %}
+        {% for record in records %}
+        <div class="history-card">
+            <img src="{{ record.xray_image.url }}" alt="X-Ray" class="history-thumb">
+            <div class="history-info">
+                <h3>{{ record.patient_name|default:"Unknown Patient" }}</h3>
+                <div class="history-meta" style="flex-wrap: wrap; gap: 6px;">
+                    <span>
+                        {% if record.patient_gender == 'male' %}♂ Male{% else %}♀ Female{% endif %}
+                    </span>
+                    <span>📅 {{ record.uploaded_at|date:"d M Y, h:i A" }}</span>
+                    <span>🕐 {{ record.predicted_age_months|default:"--" }} months</span>
+                    <span style="background: rgba(99, 102, 241, 0.1); color: var(--primary-light); padding: 2px 6px; border-radius: 4px;">📈 {{ record.bone_stage|default:"--" }}</span>
+                    <span style="background: rgba(239, 68, 68, 0.1); color: var(--danger-light); padding: 2px 6px; border-radius: 4px;">⚠️ {{ record.bone_abnormality|default:"Normal" }}</span>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="history-age">{{ record.predicted_age_years|default:"--" }} yr</div>
+                <a href="{% url 'result' record.id %}" class="btn btn-outline btn-sm">View</a>
+                <a href="{% url 'delete_record' record.id %}" class="btn btn-danger btn-sm"
+                   onclick="return confirm('Are you sure you want to delete this record?');">🗑️</a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card">
+            <div class="card-body">
+                <div class="empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3 class="empty-title">No Predictions Yet</h3>
+                    <p class="empty-text">You haven't made any bone age predictions yet. Upload an X-ray image to get started!</p>
+                    <a href="{% url 'prediction' %}" class="btn btn-primary">🔬 Make Your First Prediction</a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

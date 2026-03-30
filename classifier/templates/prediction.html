@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bone Age Prediction{% endblock %}
+
+{% block content %}
+<div class="prediction-container">
+    <div class="prediction-header">
+        <h1 class="prediction-title">🔬 Bone Age Prediction</h1>
+        <p class="prediction-subtitle">Upload a hand X-ray image and let our CNN model predict the bone age accurately</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2 class="card-title">📤 Upload X-Ray Image</h2>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" action="{% url 'prediction' %}" id="predictionForm">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label class="form-label" for="id_patient_name">Patient Name</label>
+                    <input type="text" id="id_patient_name" name="patient_name" class="form-input"
+                           placeholder="Enter patient's full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="id_patient_gender">Gender</label>
+                    <select id="id_patient_gender" name="patient_gender" class="form-input" required>
+                        <option value="male">♂ Male</option>
+                        <option value="female">♀ Female</option>
+                    </select>
+                </div>
+
+                <!-- Drag & Drop Upload Area -->
+                <div class="form-group">
+                    <label class="form-label">X-Ray Image</label>
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('id_xray_image').click();">
+                        <span class="upload-icon" id="uploadIcon">🩻</span>
+                        <div class="upload-text" id="uploadText">Drag & drop your X-ray image here</div>
+                        <div class="upload-hint" id="uploadHint">or click to browse • Supports PNG, JPG, DICOM</div>
+                        <input type="file" id="id_xray_image" name="xray_image" class="form-input file-input"
+                               accept="image/*" required style="display: none;" onchange="handleFileSelect(this)">
+                    </div>
+                    <!-- Image Preview -->
+                    <div id="imagePreview" style="display: none; margin-top: 16px; text-align: center;">
+                        <img id="previewImg" src="" alt="Preview" 
+                             style="max-height: 300px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-dark);">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg btn-full" id="predictBtn">
+                    <span class="btn-text">🧠 Analyze & Predict Bone Age</span>
+                    <div class="spinner"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Info Cards -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 32px;">
+        <div class="card" style="text-align: center;">
+            <div class="card-body">
+                <div style="font-size: 32px; margin-bottom: 8px;">⚡</div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Fast Analysis</div>
+                <div style="font-size: 13px; color: var(--text-muted);">Results in under 5 seconds</div>
+            </div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="card-body">
+                <div style="font-size: 32px; margin-bottom: 8px;">🎯</div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">High Accuracy</div>
+                <div style="font-size: 13px; color: var(--text-muted);">CNN-powered deep learning</div>
+            </div>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div class="card-body">
+                <div style="font-size: 32px; margin-bottom: 8px;">🔒</div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Secure & Private</div>
+                <div style="font-size: 13px; color: var(--text-muted);">Your data stays protected</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('id_xray_image');
+
+    // Drag & Drop
+    ['dragenter', 'dragover'].forEach(evt => {
+        uploadArea.addEventListener(evt, (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(evt => {
+        uploadArea.addEventListener(evt, (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+        });
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            handleFileSelect(fileInput);
+        }
+    });
+
+    function handleFileSelect(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+            document.getElementById('uploadIcon').textContent = '✅';
+            document.getElementById('uploadText').textContent = file.name;
+            document.getElementById('uploadHint').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB • Click to change`;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('imagePreview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Loading state on submit
+    document.getElementById('predictionForm').addEventListener('submit', function() {
+        const btn = document.getElementById('predictBtn');
+        btn.classList.add('loading');
+    });
+</script>
+{% endblock %}
