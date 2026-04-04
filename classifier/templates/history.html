@@ -6,17 +6,21 @@
 {% block content %}
 <div class="history-container">
     <div class="history-header">
-        <h1 class="history-title">📋 Prediction History</h1>
+        <h1 class="history-title">📋 {% if is_admin %}All Users Prediction History{% else %}My Prediction History{% endif %}</h1>
         <a href="{% url 'prediction' %}" class="btn btn-primary">+ New Prediction</a>
     </div>
 
     {% if records %}
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Total Records: <strong style="color: var(--primary-light);">{{ records|length }}</strong></p>
         {% for record in records %}
         <div class="history-card">
             <img src="{{ record.xray_image.url }}" alt="X-Ray" class="history-thumb">
             <div class="history-info">
                 <h3>{{ record.patient_name|default:"Unknown Patient" }}</h3>
                 <div class="history-meta" style="flex-wrap: wrap; gap: 6px;">
+                    {% if is_admin %}
+                    <span style="background: rgba(99,102,241,0.15); color: #818cf8; padding: 2px 8px; border-radius: 4px;">👤 {{ record.user.username|default:"Unknown User" }}</span>
+                    {% endif %}
                     <span>
                         {% if record.patient_gender == 'male' %}♂ Male{% else %}♀ Female{% endif %}
                     </span>
@@ -40,7 +44,7 @@
                 <div class="empty-state">
                     <div class="empty-icon">📭</div>
                     <h3 class="empty-title">No Predictions Yet</h3>
-                    <p class="empty-text">You haven't made any bone age predictions yet. Upload an X-ray image to get started!</p>
+                    <p class="empty-text">No bone age predictions found. Upload an X-ray image to get started!</p>
                     <a href="{% url 'prediction' %}" class="btn btn-primary">🔬 Make Your First Prediction</a>
                 </div>
             </div>

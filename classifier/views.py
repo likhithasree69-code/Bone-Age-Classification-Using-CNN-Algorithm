@@ -3,28 +3,42 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
+import json
+import os
+import uuid
 from .forms import RegisterForm, XRayUploadForm
 from .models import BoneAgeRecord, UserProfile
 from .ml_model.predict import predict_bone_age
+from functools import wraps
 
-
-def home(request):
-    """Landing page - Redirects authenticated users to their dashboard."""
-    if request.user.is_authenticated:
+def admin_required(view_func):
+    """Custom decorator to check if user has admin role."""
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('login')
         try:
-            profile = UserProfile.objects.get(user=request.user)
-            if profile.role == 'admin':
-                return redirect('admin_dashboard')
-            else:
+            if request.user.userprofile.role != 'admin':
+                messages.error(request, 'Access Denied: Admin privileges required.')
                 return redirect('dashboard')
         except UserProfile.DoesNotExist:
             return redirect('dashboard')
-            
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+
+def home(request):
+    """Landing page - Always shows home page. Users can navigate to login/dashboard."""
     return render(request, 'home.html')
 
 
 def login_view(request):
-    """Handle user login."""
+    """Handle regular user login - Excludes Admins."""
     if request.user.is_authenticated:
         try:
             profile = UserProfile.objects.get(user=request.user)
@@ -38,31 +52,63 @@ def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
-        next_url = request.POST.get('next')
         
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            login(request, user)
-            messages.success(request, f'Welcome back, {user.first_name or user.username}!')
-            
-            # If there's a 'next' parameter, use it
-            if next_url:
-                return redirect(next_url)
-
-            # Check for role to redirect automatically if no specific page requested
+            # Prevent Admins from using the regular user login page
             try:
                 profile = UserProfile.objects.get(user=user)
                 if profile.role == 'admin':
-                    return redirect('admin_dashboard')
+                    messages.error(request, 'This is a User Login. Administrators must use the Admin Access portal.')
+                    return render(request, 'login.html')
             except UserProfile.DoesNotExist:
                 pass
 
-            # Redirect to dashboard page by default
+            login(request, user)
+            messages.success(request, f'Welcome back, {user.username}!')
             return redirect('dashboard')
         else:
-            messages.error(request, 'Invalid username or password. Please try again.')
+            messages.error(request, 'Invalid User username or password.')
 
-    return render(request, 'login.html')
+    return render(request, 'login.html', {'title': 'User Login'})
+
+
+def admin_login_view(request):
+    """Handle administrator login - Excludes regular Users."""
+    if request.user.is_authenticated:
+        try:
+            profile = UserProfile.objects.get(user=request.user)
+            if profile.role == 'admin':
+                return redirect('admin_dashboard')
+            else:
+                return redirect('dashboard')
+        except UserProfile.DoesNotExist:
+            return redirect('dashboard')
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            # Check if user is actually an admin
+            try:
+                profile = UserProfile.objects.get(user=user)
+                if profile.role != 'admin':
+                    messages.error(request, 'Access Denied: Regular users cannot use the Admin portal.')
+                    return render(request, 'login.html', {'title': 'Admin Login'})
+            except UserProfile.DoesNotExist:
+                messages.error(request, 'Access Denied: Admin profile not found.')
+                return render(request, 'login.html', {'title': 'Admin Login'})
+
+            login(request, user)
+            messages.success(request, 'Admin session started.')
+            return redirect('admin_dashboard')
+        else:
+            messages.error(request, 'Invalid Admin credentials.')
+
+    return render(request, 'login.html', {'title': 'Admin Login'})
+
 
 
 def register_view(request):
@@ -123,18 +169,9 @@ def dashboard_view(request):
     return render(request, 'dashboard.html', context)
 
 
-@login_required
+@admin_required
 def admin_dashboard_view(request):
     """Admin Dashboard - Restricted to users with admin role."""
-    try:
-        profile = UserProfile.objects.get(user=request.user)
-        if profile.role != 'admin':
-            messages.error(request, 'Access Denied: You do not have permission to view the Admin Dashboard.')
-            return redirect('dashboard')
-    except UserProfile.DoesNotExist:
-        messages.error(request, 'Access Denied: Admin profile required.')
-        return redirect('dashboard')
-
     total_predictions = BoneAgeRecord.objects.count()
     total_users = User.objects.count()
     recent_records = BoneAgeRecord.objects.all()[:10]
@@ -243,9 +280,21 @@ def result_view(request, record_id):
 
 @login_required
 def history_view(request):
-    """Display prediction history for the current user."""
-    records = BoneAgeRecord.objects.filter(user=request.user)
-    return render(request, 'history.html', {'records': records})
+    """Display prediction history - all records for admin, own records for regular user."""
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        is_admin = profile.role == 'admin'
+    except UserProfile.DoesNotExist:
+        is_admin = False
+
+    if is_admin:
+        # Admin sees all users' records
+        records = BoneAgeRecord.objects.all()
+    else:
+        # Regular user sees only their own records
+        records = BoneAgeRecord.objects.filter(user=request.user)
+
+    return render(request, 'history.html', {'records': records, 'is_admin': is_admin})
 
 
 @login_required
@@ -255,3 +304,105 @@ def delete_record(request, record_id):
     record.delete()
     messages.success(request, 'Record deleted successfully.')
     return redirect('history')
+
+
+@csrf_exempt
+def mobile_login_api(request):
+    """Mobile API: Login and return user info as JSON."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+    try:
+        data = json.loads(request.body)
+        username = data.get('username', '')
+        password = data.get('password', '')
+    except Exception:
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        try:
+            profile = UserProfile.objects.get(user=user)
+            role = profile.role
+        except UserProfile.DoesNotExist:
+            role = 'user'
+        return JsonResponse({
+            'success': True,
+            'username': user.username,
+            'first_name': user.first_name,
+            'role': role,
+        })
+    return JsonResponse({'success': False, 'error': 'Invalid username or password'}, status=401)
+
+
+@csrf_exempt
+def mobile_predict_api(request):
+    """Mobile API: Accept image upload and return bone age prediction as JSON."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST method required'}, status=405)
+
+    # Basic auth check via POST fields
+    username = request.POST.get('username', '')
+    password = request.POST.get('password', '')
+    user = authenticate(request, username=username, password=password)
+    if user is None:
+        return JsonResponse({'success': False, 'error': 'Invalid credentials'}, status=401)
+
+    if 'xray_image' not in request.FILES:
+        return JsonResponse({'success': False, 'error': 'No image file provided'}, status=400)
+
+    image_file = request.FILES['xray_image']
+    patient_name = request.POST.get('patient_name', 'Unknown Patient')
+    gender = request.POST.get('gender', 'male')
+    if gender not in ['male', 'female']:
+        gender = 'male'
+
+    # Save the uploaded file
+    ext = os.path.splitext(image_file.name)[1] or '.jpg'
+    unique_name = f'xrays/mobile_{uuid.uuid4().hex}{ext}'
+    saved_path = default_storage.save(unique_name, ContentFile(image_file.read()))
+    full_path = default_storage.path(saved_path)
+
+    try:
+        prediction_result = predict_bone_age(full_path, gender)
+        predicted_months = prediction_result['months']
+        predicted_years = round(predicted_months / 12, 1)
+
+        if predicted_months < 84:
+            bone_stage = 'Low (Early Stage)'
+        elif predicted_months < 168:
+            bone_stage = 'Medium (Mid Stage)'
+        else:
+            bone_stage = 'High (Mature Stage)'
+
+        # Save record to DB
+        record = BoneAgeRecord(
+            user=user,
+            patient_name=patient_name,
+            patient_gender=gender,
+            predicted_age_months=round(predicted_months, 1),
+            predicted_age_years=predicted_years,
+            bone_abnormality=prediction_result.get('abnormality', 'Normal'),
+            affected_area_size=prediction_result.get('affected_area', '0%'),
+            bone_stage=bone_stage,
+        )
+        record.xray_image.name = saved_path
+        record.save()
+
+        return JsonResponse({
+            'success': True,
+            'patient_name': patient_name,
+            'gender': gender,
+            'predicted_months': round(predicted_months, 1),
+            'predicted_years': predicted_years,
+            'bone_stage': bone_stage,
+            'abnormality': prediction_result.get('abnormality', 'Normal'),
+            'affected_area': prediction_result.get('affected_area', '0%'),
+            'record_id': record.id,
+        })
+    except Exception as e:
+        # Cleanup on failure
+        if default_storage.exists(saved_path):
+            default_storage.delete(saved_path)
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

@@ -4,6 +4,7 @@ from . import views
 urlpatterns = [
     path('', views.home, name='home'),
     path('login/', views.login_view, name='login'),
+    path('admin-login/', views.admin_login_view, name='admin_login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
     path('dashboard/', views.dashboard_view, name='dashboard'),
@@ -12,4 +13,7 @@ urlpatterns = [
     path('result/<int:record_id>/', views.result_view, name='result'),
     path('history/', views.history_view, name='history'),
     path('delete-record/<int:record_id>/', views.delete_record, name='delete_record'),
+    # Mobile App API endpoints
+    path('api/login/', views.mobile_login_api, name='mobile_login_api'),
+    path('api/predict/', views.mobile_predict_api, name='mobile_predict_api'),
 ]

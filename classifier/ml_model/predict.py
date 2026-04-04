@@ -210,63 +210,73 @@ def predict_bone_age(image_path, gender='male'):
 
 def _demo_predict(processed_image, gender):
     """
-    Advanced heuristic prediction using structural fusion and bone density.
+    Improved heuristic prediction using edge-to-bone ratio as primary indicator.
+    
+    Key insight: Children's X-rays have HIGH edge density due to visible growth
+    plates (dark gaps between bone segments). Adults have LOW edge density because
+    bones are fully fused and more uniform.
     """
     img = processed_image[0, :, :, 0]
 
-    # 1. Bone-specific intensity (normalized)
-    bone_mask = img > 0.18
+    # 1. Bone intensity analysis (lower threshold for real X-rays)
+    bone_mask = img > 0.15
     bone_pixels = img[bone_mask]
-    
+
     if len(bone_pixels) == 0:
         bone_mean = np.mean(img)
     else:
         bone_mean = np.mean(bone_pixels)
-        
-    std_intensity = np.std(img)
-    
-    # 2. Structural Analysis: Check for joint fusion (Adult sign)
+
+    # 2. Edge/gradient analysis
+    # HIGH edge_density = growth plates visible = YOUNG patient
+    # LOW edge_density  = fused bones = ADULT patient
     grad_x = np.diff(img, axis=1)
     grad_y = np.diff(img, axis=0)
     edge_density = (np.mean(np.abs(grad_x)) + np.mean(np.abs(grad_y))) / 2
-    
-    # Measure "gaps" - Children have more high-contrast edges due to gaps
-    # Adults have a more continuous bone density
-    
-    # Unique seed for consistency per image
-    np.random.seed(int(bone_mean * 10000 + edge_density * 1000) % (2**31))
-    
-    # 5-year-old check: Very high gaps relative to bone size
-    # Typically low bone mean (0.15-0.25) but high contrast edges
-    
-    if bone_mean < 0.28:
-        # Pediatric Range (5 - 12 years)
-        # 5 years = 60 months. 
-        base_age = 50 + (bone_mean * 250) + (edge_density * 400)
-    elif bone_mean < 0.38:
-        # Adolescent (12 - 20 years)
-        base_age = 144 + (bone_mean - 0.28) * 900
-    else:
-        # Adult Range (21 - 60 years)
-        # Fully fused structure has lower edge density relative to bone brightness
-        edge_to_bone_ratio = edge_density / (bone_mean + 1e-6)
-        
-        if edge_to_bone_ratio < 0.08: # Very mature bone
-            # Senior (45 - 60 years)
-            base_age = 540 + (bone_mean - 0.38) * 400
-        else:
-            # Young Adult (21 - 45 years)
-            base_age = 252 + (bone_mean - 0.38) * 850
 
-    # Final Adjustment based on specific features
-    if np.max(img) > 0.98 and bone_mean > 0.45: # Extremely clear mature scan
-        base_age += 12
-    
-    # Clamp to valid range (5 to 60 years)
-    predicted_months = max(60, min(720, base_age)) 
-    
-    # Random realistic deviance (very small for stability)
-    noise = np.random.normal(0, 3)
+    # 3. Bone coverage (fraction of image occupied by bone)
+    bone_coverage = np.sum(bone_mask) / img.size
+
+    # Seed for consistency per image
+    np.random.seed(int(bone_mean * 10000 + edge_density * 1000) % (2**31))
+
+    # Primary indicator: edge-to-bone ratio
+    # Young bones have many growth-plate edges relative to bone area
+    # Adult bones are smooth and fused → low ratio
+    edge_to_bone_ratio = edge_density / (bone_mean + 1e-6)
+
+    # ── Age Band Classification ───────────────────────────────────────────────
+    if edge_to_bone_ratio > 0.16 or (edge_density > 0.070 and bone_mean < 0.40):
+        # Child (5 – 10 years = 60 – 120 months)
+        # Many sharp growth-plate edges, relatively thin bones
+        base_age = 60 + (edge_to_bone_ratio * 80) + (bone_coverage * 60)
+        base_age = max(60, min(base_age, 120))
+
+    elif edge_to_bone_ratio > 0.12 or (edge_density > 0.055 and bone_mean < 0.50):
+        # Pre-teen / Early Adolescent (10 – 15 years = 120 – 180 months)
+        base_age = 120 + ((0.16 - edge_to_bone_ratio) * 500) + (bone_mean * 40)
+        base_age = max(120, min(base_age, 180))
+
+    elif edge_to_bone_ratio > 0.09 or bone_mean < 0.48:
+        # Late Adolescent (15 – 22 years = 180 – 264 months)
+        base_age = 180 + ((0.12 - edge_to_bone_ratio) * 700) + (bone_mean * 50)
+        base_age = max(180, min(base_age, 264))
+
+    elif edge_to_bone_ratio > 0.06:
+        # Young Adult (22 – 40 years = 264 – 480 months)
+        base_age = 264 + ((0.09 - edge_to_bone_ratio) * 2000)
+        base_age = max(264, min(base_age, 480))
+
+    else:
+        # Middle-aged / Senior (40 – 60 years = 480 – 720 months)
+        base_age = 480 + ((0.06 - edge_to_bone_ratio) * 6000)
+        base_age = max(480, min(base_age, 720))
+
+    # Clamp to valid range (5 – 60 years)
+    predicted_months = max(60, min(720, base_age))
+
+    # Small realistic noise
+    noise = np.random.normal(0, 4)
     return predicted_months + noise
 
 
