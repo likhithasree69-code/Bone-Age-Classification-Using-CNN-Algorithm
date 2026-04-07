@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: bone-age-classification
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn bone_age_project.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.14
+      - key: RENDER
+        value: True
