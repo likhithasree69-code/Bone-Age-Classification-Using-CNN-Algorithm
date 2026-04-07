@@ -59,3 +59,5 @@ tzdata==2025.3
 urllib3==2.6.3
 Werkzeug==3.1.6
 wrapt==1.14.2
+
+whitenoise>=6.0
