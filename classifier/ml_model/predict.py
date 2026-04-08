@@ -76,6 +76,21 @@ def is_valid_human_xray(img_array, image_path):
     Validates if the image is likely a human hand X-ray using structural heuristics.
     Rejects normal photos and attempts to filter out animal/bird X-rays.
     """
+    # 0. Reject Color Photos (Medical X-rays are grayscale)
+    try:
+        orig_img = Image.open(image_path)
+        if orig_img.mode in ['RGB', 'RGBA']:
+            orig_array = np.array(orig_img.convert('RGB'), dtype='float32')
+            r, g, b = orig_array[:,:,0], orig_array[:,:,1], orig_array[:,:,2]
+            # Calculate the difference between color channels
+            color_variance = np.mean(np.abs(r - g)) + np.mean(np.abs(r - b)) + np.mean(np.abs(g - b))
+            
+            # If color difference is significant, it's a color photo
+            if color_variance > 5.0:
+                return False, "Uploaded image appears to be a regular color photograph. Medical X-rays must be grayscale."
+    except Exception as e:
+        pass
+
     # 1. Name heuristics (if user tests with obviously named files)
     filename = os.path.basename(image_path).lower()
     animal_keywords = ['dog', 'cat', 'bird', 'animal', 'pet', 'vet', 'horse', 'monkey', 'rat', 'mouse', 'paw', 'wing', 'tail', 'fish', 'puppy']
@@ -90,8 +105,8 @@ def is_valid_human_xray(img_array, image_path):
     mid_pixels = np.sum((img > 0.3) & (img < 0.6)) / img.size
     
     # Relaxed thresholds to allow more "original" X-ray variations
-    if dark_pixels < 0.02 or bright_pixels < 0.002 or mid_pixels > 0.90:
-        return False, "Image lacks the standard contrast of a medical X-ray."
+    if dark_pixels < 0.05 or bright_pixels < 0.005:
+        return False, "Image lacks the standard contrast (dark background, bright bones) of a medical X-ray."
         
     # 3. Structural Analysis: Bounding box of the bones
     bone_pixels = np.argwhere(img > 0.5)
