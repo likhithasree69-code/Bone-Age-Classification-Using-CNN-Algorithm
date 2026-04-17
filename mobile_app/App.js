@@ -3,7 +3,7 @@ import { StyleSheet, SafeAreaView, Platform, StatusBar, ActivityIndicator, View 
 import { WebView } from 'react-native-webview';
 
 // ✅ Update this IP if your WiFi IP changes (Currently 10.173.234.243)
-const SERVER_URL = 'http://10.173.234.243:8000/';
+const SERVER_URL = 'https://bone-age-classification-using-cnn.onrender.com/';
 
 export default function App() {
   return (

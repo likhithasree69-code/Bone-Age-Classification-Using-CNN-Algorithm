@@ -35,14 +35,12 @@
             <p style="color: var(--text-muted); font-size: 14px;">Create your profile: Name, Phone, Location and credentials.</p>
         </a>
 
-        <!-- Admin Card - only show if NOT logged in or logged in as Admin -->
-        {% if not request.user.is_authenticated or request.user.userprofile.role == 'admin' %}
+        <!-- Admin Card - always show on home page -->
         <a href="{% url 'admin_login' %}" class="home-nav-card" style="display: block; text-decoration: none; padding: 40px 30px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 20px; transition: all 0.3s ease; backdrop-filter: blur(10px); color: white;">
             <div style="font-size: 48px; margin-bottom: 20px;">👑</div>
             <h2 style="font-size: 24px; margin-bottom: 12px; color: #f59e0b;">Admin Access</h2>
             <p style="color: var(--text-muted); font-size: 14px;">System administrators can login to manage and audit all records.</p>
         </a>
-        {% endif %}
 
     </div>
 </div>
