@@ -406,3 +406,5 @@ def mobile_predict_api(request):
         if default_storage.exists(saved_path):
             default_storage.delete(saved_path)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+#   T r i g g e r   b u i l d  
+ 
