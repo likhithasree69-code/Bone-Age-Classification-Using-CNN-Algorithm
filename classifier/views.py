@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -406,5 +406,6 @@ def mobile_predict_api(request):
         if default_storage.exists(saved_path):
             default_storage.delete(saved_path)
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
-#   T r i g g e r   b u i l d  
- 
+# Trigger build
+
+
